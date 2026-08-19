@@ -1,0 +1,37 @@
+{
+    "1970665420": {
+        "nome_da_conta": "KOSTAGON",
+        "access_token": "APP_USR-7966222230508822-081816-3fa802150585799cda82682a69db0116-1970665420",
+        "refresh_token": "TG-6a84bff0d4696a00016296e2-1970665420"
+    },
+    "2474228476": {
+        "nome_da_conta": "FLIXPHONE",
+        "access_token": "APP_USR-7966222230508822-081816-889e1d7ca89a0bfc2dbe6befe794ca74-2474228476",
+        "refresh_token": "TG-6a84bff1c6cd9b0001c1d97b-2474228476"
+    },
+    "2374668785": {
+        "nome_da_conta": "SIOUXSTORE",
+        "access_token": "APP_USR-7966222230508822-081816-d0ca830b5ebcf666438eef2c3c5fecc6-2374668785",
+        "refresh_token": "TG-6a84bff23c0da2000169e5e4-2374668785"
+    },
+    "2324282473": {
+        "nome_da_conta": "LOBBYTECH",
+        "access_token": "APP_USR-7966222230508822-081816-01f5772fee21f87c6a516012cdd2c3ef-2324282473",
+        "refresh_token": "TG-6a84bff3595dc900013941c4-2324282473"
+    },
+    "2474472900": {
+        "nome_da_conta": "BASIKECWB",
+        "access_token": "APP_USR-7966222230508822-081816-ae8c202f785ad250cc3cc1b8d378035c-2474472900",
+        "refresh_token": "TG-6a84bff48eaa0f00019d26ac-2474472900"
+    },
+    "1033304472": {
+        "nome_da_conta": "HEUREKAS",
+        "access_token": "APP_USR-7966222230508822-081816-8d031dc8fc9c2eec786e6cfd80f5c0d6-1033304472",
+        "refresh_token": "TG-6a84bff53c0da2000169e60b-1033304472"
+    },
+    "1170078166": {
+        "nome_da_conta": "BLEGAT",
+        "access_token": "APP_USR-7966222230508822-081816-081103bf96a8fa8f5047d558a250713f-1170078166",
+        "refresh_token": "TG-6a84bff6c7970b0001372d80-1170078166"
+    }
+}
