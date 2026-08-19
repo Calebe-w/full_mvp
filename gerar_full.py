@@ -18,24 +18,35 @@ def processar_item(item_id, token, vendas_por_item):
         if item_data.get("status") != "active":
             return None
 
+        # Preço Atual / Promocional
+        preco_final = item_data.get("price", 0.0)
+        try:
+            r_price = requests.get(f"https://api.mercadolibre.com/items/{item_id}/prices", headers=headers, timeout=5)
+            if r_price.status_code == 200:
+                prices_data = r_price.json()
+                for p in prices_data.get("prices", []):
+                    if p.get("type") in ["standard", "promotion"]:
+                        preco_final = p.get("amount", preco_final)
+                        if p.get("type") == "promotion":
+                            break
+        except:
+            pass
+
         r_rep = requests.get(f"https://api.mercadolibre.com/items/{item_id}/reputation", headers=headers, timeout=10)
         rep_data = r_rep.json() if r_rep.status_code == 200 else {}
 
-        # Métricas de Qualidade e Reputação
         experiencia_score = rep_data.get("buying_experience_score", 100)
         
-        # Extração de reclamações e devoluções da estrutura de reputação do item
         claims_data = rep_data.get("claims", {})
-        reclamacoes = claims_data.get("value", 0) if isinstance(claims_data, dict) else claims_data
+        reclamacoes_total = claims_data.get("value", 0) if isinstance(claims_data, dict) else (claims_data if isinstance(claims_data, (int, float)) else 0)
         
         returns_data = rep_data.get("returns", {})
-        devolucoes = returns_data.get("value", 0) if isinstance(returns_data, dict) else returns_data
+        devolucoes_total = returns_data.get("value", 0) if isinstance(returns_data, dict) else (returns_data if isinstance(returns_data, (int, float)) else 0)
 
         shipping = item_data.get("shipping", {})
         logistic_type = shipping.get("logistic_type", "standard")
-        experiencia = "FULL" if logistic_type == "fulfillment" else "PADRÃO / OUTROS"
+        experiencia_texto = "FULL" if logistic_type == "fulfillment" else "PADRÃO / OUTROS"
         
-        # Estoque FULL real
         estoque_full = 0
         if logistic_type == "fulfillment":
             stock_resp = requests.get(f"https://api.mercadolibre.com/items/{item_id}/stock", headers=headers, timeout=10)
@@ -46,7 +57,6 @@ def processar_item(item_id, token, vendas_por_item):
             if estoque_full == 0:
                 estoque_full = item_data.get("available_quantity", 0)
 
-        # Visitas Reais
         visitas_30d = 0
         try:
             r_vis = requests.get(f"https://api.mercadolibre.com/visits/items?ids={item_id}", headers=headers, timeout=5)
@@ -57,25 +67,44 @@ def processar_item(item_id, token, vendas_por_item):
         visitas_7d = int(visitas_30d * 0.25)
 
         titulo = item_data.get("title", "Sem Título")
-        thumbnail = item_data.get("thumbnail", "")
-        preco = item_data.get("price", 0.0)
+        
+        # CORREÇÃO DE HTTPS NAS IMAGENS (Evita erro de conteúdo misto)
+        raw_thumb = item_data.get("thumbnail", "")
+        thumbnail = raw_thumb.replace("http://", "https://") if raw_thumb else ""
+        
         vendas_item = vendas_por_item.get(item_id, {"7d": 0, "14d": 0, "30d": 0})
 
         info_produto = {
             "titulo": titulo,
             "thumbnail": thumbnail,
-            "preco_atual": preco,
+            "preco_atual": preco_final,
             "experiencia_compra": experiencia_score,
-            "experiencia_compra_texto": experiencia,
+            "experiencia_compra_texto": experiencia_texto,
             "pecas_no_full": estoque_full,
-            "vendas": vendas_item,
-            "visitas": {"7d": visitas_7d, "14d": visitas_14d, "30d": visitas_30d},
-            "reclamacoes": {"7d": int(reclamacoes * 0.25), "14d": int(reclamacoes * 0.5), "30d": reclamacoes},
-            "devolucoes": {"7d": int(devolucoes * 0.25), "14d": int(devolucoes * 0.5), "30d": devolucoes}
+            "vendas": {
+                "7d": vendas_item["7d"], 
+                "14d": vendas_item["14d"], 
+                "30d": vendas_item["30d"]
+            },
+            "visitas": {
+                "7d": visitas_7d, 
+                "14d": visitas_14d, 
+                "30d": visitas_30d
+            },
+            "reclamacoes": {
+                "7d": int(reclamacoes_total * 0.25), 
+                "14d": int(reclamacoes_total * 0.5), 
+                "30d": int(reclamacoes_total)
+            },
+            "devolucoes": {
+                "7d": int(devolucoes_total * 0.25), 
+                "14d": int(devolucoes_total * 0.5), 
+                "30d": int(devolucoes_total)
+            }
         }
         
         sugestao_obj = None
-        if experiencia != "FULL":
+        if experiencia_texto != "FULL":
             score = (vendas_item["30d"] * 3) + visitas_30d
             sugestao_obj = {
                 "mlb": item_id,
@@ -112,8 +141,6 @@ def gerar_banco_full():
         
         print(f"\n--- Processando loja: {nome_loja} ---")
         
-        # 1. Puxar pedidos dos últimos 30 dias
-        print(f"[{nome_loja}] Buscando pedidos dos últimos 30 dias...")
         vendas_por_item = {}
         offset_pedidos = 0
         while True:
@@ -133,10 +160,7 @@ def gerar_banco_full():
                     if data_pedido >= (hoje - timedelta(days=7)): vendas_por_item[item_id]["7d"] += qtd
             if len(results) < 50: break
             offset_pedidos += 50
-        print(f"[{nome_loja}] Pedidos mapeados.")
 
-        # 2. Puxar anúncios ativos da loja
-        print(f"[{nome_loja}] Buscando lista de anúncios...")
         item_ids = []
         offset_items = 0
         while True:
@@ -148,9 +172,7 @@ def gerar_banco_full():
             item_ids.extend(ids)
             if len(ids) < 50: break
             offset_items += 50
-        print(f"[{nome_loja}] Total de anúncios encontrados: {len(item_ids)}. Processando...")
 
-        # 3. Processamento Paralelo
         produtos_loja = {}
         sugestoes_lista = []
         concluidos = 0
@@ -166,11 +188,9 @@ def gerar_banco_full():
                 if concluidos % 10 == 0 or concluidos == len(item_ids):
                     print(f"[{nome_loja}] Progresso: {concluidos}/{len(item_ids)}...", end="\r")
 
-        # Ordena o Top 20 Sugestões Full por score
         sugestoes_lista.sort(key=lambda x: x["score"], reverse=True)
         top_20_sugestoes = sugestoes_lista[:20]
 
-        print(f"\n[{nome_loja}] Loja finalizada com sucesso!")
         dados_consolidados["contas"][nome_loja] = {
             "produtos": produtos_loja,
             "sugestoes_full": top_20_sugestoes
@@ -178,7 +198,7 @@ def gerar_banco_full():
 
     with open(ARQUIVO_SAIDA, "w", encoding="utf-8") as f:
         json.dump(dados_consolidados, f, indent=4, ensure_ascii=False)
-    print("\n[SUCESSO] Atualização finalizada! Arquivo JSON gerado com Top 20 e métricas completas.")
+    print("\n[SUCESSO] Banco gerado com imagens seguras HTTPS!")
 
 if __name__ == "__main__":
     gerar_banco_full()
