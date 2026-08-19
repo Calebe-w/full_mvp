@@ -27,32 +27,32 @@
             <div class="card">
                 <h3>Consultar Desempenho do Anúncio por MLB</h3>
                 <div style="display: flex; gap: 10px;">
-                    <input type="text" id="mlb_input" placeholder="Ex: MLB123456789" style="padding: 10px; flex: 1; border: 1px solid #ccc; border-radius: 4px;">
+                    <input type="text" id="mlb_input" placeholder="Ex: MLB6446055168" style="padding: 10px; flex: 1; border: 1px solid #ccc; border-radius: 4px;">
                     <button onclick="buscarMlb()" style="padding: 10px 20px; background: #3483fa; color: #fff; border: none; cursor: pointer; border-radius: 4px; font-weight: bold;">Consultar</button>
                 </div>
                 
                 <div id="resultado-busca" style="margin-top: 20px; display: none; border-top: 1px solid #eee; padding-top: 15px;">
-                    <div class="produto-info">
-                        <img id="res-img" src="" alt="Capa">
+                    <div class="produto-info" style="display: flex; gap: 15px; align-items: center;">
+                        <img id="res-img" src="" alt="Capa" style="width: 80px; height: 80px; object-fit: cover; border-radius: 4px;">
                         <div>
                             <h4 id="res-titulo" style="color: #333; margin: 0 0 8px 0;"></h4>
-                            <p style="margin: 4px 0;"><b>Experiência:</b> <span id="res-exp" style="color: green; font-weight: bold;"></span> | <b>Peças no FULL:</b> <span id="res-pecas-full">0</span></p>
+                            <p style="margin: 4px 0;"><b>Logística:</b> <span id="res-exp-texto" style="color: #3483fa; font-weight: bold;"></span> | <b>Score Exp. (0-100):</b> <span id="res-exp" style="color: green; font-weight: bold;"></span> | <b>Peças no FULL:</b> <span id="res-pecas-full">0</span></p>
                             <p style="margin: 4px 0;"><b>Preço Atual:</b> R$ <span id="res-preco" style="font-size: 16px; color: #3483fa; font-weight: bold;"></span></p>
                         </div>
                     </div>
                     
-                    <div class="grid-metricas">
-                        <div class="bloco-metrica">
+                    <div class="grid-metricas" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 20px;">
+                        <div class="bloco-metrica" style="background: #f9f9f9; padding: 12px; border-radius: 6px; border: 1px solid #eee;">
                             <b>7 Dias</b><br>
                             Vendas: <span id="v-7"></span> | Visitas: <span id="vis-7"></span><br>
                             Reclamações: <span id="rec-7" style="color:red"></span> | Devoluções: <span id="dev-7" style="color:orange"></span>
                         </div>
-                        <div class="bloco-metrica">
+                        <div class="bloco-metrica" style="background: #f9f9f9; padding: 12px; border-radius: 6px; border: 1px solid #eee;">
                             <b>14 Dias</b><br>
                             Vendas: <span id="v-14"></span> | Visitas: <span id="vis-14"></span><br>
                             Reclamações: <span id="rec-14" style="color:red"></span> | Devoluções: <span id="dev-14" style="color:orange"></span>
                         </div>
-                        <div class="bloco-metrica">
+                        <div class="bloco-metrica" style="background: #f9f9f9; padding: 12px; border-radius: 6px; border: 1px solid #eee;">
                             <b>30 Dias</b><br>
                             Vendas: <span id="v-30"></span> | Visitas: <span id="vis-30"></span><br>
                             Reclamações: <span id="rec-30" style="color:red"></span> | Devoluções: <span id="dev-30" style="color:orange"></span>
@@ -60,25 +60,25 @@
                     </div>
 
                     <!-- Gráfico Horizontal Cruzado -->
-                    <div class="grafico-container">
+                    <div class="grafico-container" style="position: relative; height: 250px; margin-top: 20px;">
                         <canvas id="graficoCruzado"></canvas>
                     </div>
                 </div>
             </div>
 
             <!-- Sugestão Top 20 -->
-            <div class="card">
+            <div class="card" style="margin-top: 20px;">
                 <h3>📦 Top 20 Produtos Sugeridos para Enviar ao FULL</h3>
                 <p style="font-size: 13px; color: #666;">Clique em qualquer linha da tabela para carregar instantaneamente as métricas e o gráfico acima.</p>
                 <div style="max-height: 400px; overflow-y: auto;">
-                    <table>
+                    <table style="width: 100%; border-collapse: collapse;">
                         <thead>
-                            <tr>
-                                <th>Capa</th>
-                                <th>MLB</th>
-                                <th>Título do Produto</th>
-                                <th>Vendas (30d)</th>
-                                <th>Visitas (30d)</th>
+                            <tr style="background: #f1f1f1; text-align: left;">
+                                <th style="padding: 8px;">Capa</th>
+                                <th style="padding: 8px;">MLB</th>
+                                <th style="padding: 8px;">Título do Produto</th>
+                                <th style="padding: 8px;">Vendas (30d)</th>
+                                <th style="padding: 8px;">Visitas (30d)</th>
                             </tr>
                         </thead>
                         <tbody id="tabela-sugestoes"></tbody>
@@ -156,6 +156,7 @@
             document.getElementById('res-titulo').innerText = produto.titulo;
             document.getElementById('res-img').src = produto.thumbnail;
             document.getElementById('res-exp').innerText = produto.experiencia_compra;
+            document.getElementById('res-exp-texto').innerText = produto.experiencia_compra_texto;
             document.getElementById('res-pecas-full').innerText = produto.pecas_no_full;
             document.getElementById('res-preco').innerText = produto.preco_atual.toFixed(2);
             
@@ -180,29 +181,44 @@
         function buscarMlb() {
             const contaSelecionada = document.getElementById('conta-select').value;
             const mlbProcurado = document.getElementById('mlb_input').value.trim().toUpperCase();
+            
+            if (!contaSelecionada) {
+                alert("Selecione uma conta primeiro.");
+                return;
+            }
+
             const produto = dadosGlobais.contas[contaSelecionada].produtos[mlbProcurado];
-            if (!produto) { alert("MLB não encontrado nesta conta."); return; }
+            if (!produto) { 
+                alert("MLB não encontrado nesta conta."); 
+                return; 
+            }
             preencherDadosProduto(produto);
         }
 
         function carregarSugestoes(conta) {
-            const sugestoes = dadosGlobais.contas[conta].sugestoes_full;
+            const sugestoes = dadosGlobais.contas[conta].sugestoes_full || [];
             const tbody = document.getElementById('tabela-sugestoes');
             tbody.innerHTML = '';
 
+            if (sugestoes.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:10px;">Nenhuma sugestão encontrada no momento.</td></tr>';
+                return;
+            }
+
             sugestoes.forEach(item => {
                 const tr = document.createElement('tr');
+                tr.style.cursor = 'pointer';
                 tr.onclick = () => {
                     const produtoCompleto = dadosGlobais.contas[conta].produtos[item.mlb];
                     document.getElementById('mlb_input').value = item.mlb;
                     preencherDadosProduto(produtoCompleto);
                 };
                 tr.innerHTML = `
-                    <td><img src="${item.thumbnail}" style="width:40px;height:40px;object-fit:cover;border-radius:4px;"></td>
-                    <td><b>${item.mlb}</b></td>
-                    <td>${item.titulo}</td>
-                    <td><b>${item.vendas_30d}</b></td>
-                    <td>${item.visitas_30d}</td>
+                    <td style="padding: 8px;"><img src="${item.thumbnail}" style="width:40px;height:40px;object-fit:cover;border-radius:4px;"></td>
+                    <td style="padding: 8px;"><b>${item.mlb}</b></td>
+                    <td style="padding: 8px;">${item.titulo}</td>
+                    <td style="padding: 8px;"><b>${item.vendas_30d}</b></td>
+                    <td style="padding: 8px;">${item.visitas_30d}</td>
                 `;
                 tbody.appendChild(tr);
             });
