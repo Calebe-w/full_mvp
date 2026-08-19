@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Painel de Gestão - Envios ao FULL</title>
+    <!-- Incluindo Chart.js para os gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Painel Inteligente - Gestão de Envios ao FULL</h1>
+        
+        <div class="status-topo">
+            <span>Última atualização geral: <b id="lbl-atualizacao">Carregando...</b></span>
+            <button class="btn-atualizar" onclick="atualizarManual()">🔄 Atualizar Manualmente</button>
+        </div>
+
+        <div class="select-conta">
+            <label for="conta-select"><b>Selecione a sua Conta/Loja:</b></label>
+            <select id="conta-select" onchange="mudarConta()">
+                <option value="">Carregando contas disponíveis...</option>
+            </select>
+        </div>
+
+        <div id="painel-conteudo" class="hidden">
+            <div class="card">
+                <h3>Consultar Desempenho do Anúncio por MLB</h3>
+                <div style="display: flex; gap: 10px;">
+                    <input type="text" id="mlb_input" placeholder="Ex: MLB123456789" style="padding: 10px; flex: 1; border: 1px solid #ccc; border-radius: 4px;">
+                    <button onclick="buscarMlb()" style="padding: 10px 20px; background: #3483fa; color: #fff; border: none; cursor: pointer; border-radius: 4px; font-weight: bold;">Consultar</button>
+                </div>
+                
+                <div id="resultado-busca" style="margin-top: 20px; display: none; border-top: 1px solid #eee; padding-top: 15px;">
+                    <div class="produto-info">
+                        <img id="res-img" src="" alt="Capa">
+                        <div>
+                            <h4 id="res-titulo" style="color: #333; margin: 0 0 8px 0;"></h4>
+                            <p style="margin: 4px 0;"><b>Experiência:</b> <span id="res-exp" style="color: green; font-weight: bold;"></span> | <b>Peças no FULL:</b> <span id="res-pecas-full">0</span></p>
+                            <p style="margin: 4px 0;"><b>Preço Atual:</b> R$ <span id="res-preco" style="font-size: 16px; color: #3483fa; font-weight: bold;"></span></p>
+                        </div>
+                    </div>
+                    
+                    <div class="grid-metricas">
+                        <div class="bloco-metrica">
+                            <b>7 Dias</b><br>
+                            Vendas: <span id="v-7"></span> | Visitas: <span id="vis-7"></span><br>
+                            Reclamações: <span id="rec-7" style="color:red"></span> | Devoluções: <span id="dev-7" style="color:orange"></span>
+                        </div>
+                        <div class="bloco-metrica">
+                            <b>14 Dias</b><br>
+                            Vendas: <span id="v-14"></span> | Visitas: <span id="vis-14"></span><br>
+                            Reclamações: <span id="rec-14" style="color:red"></span> | Devoluções: <span id="dev-14" style="color:orange"></span>
+                        </div>
+                        <div class="bloco-metrica">
+                            <b>30 Dias</b><br>
+                            Vendas: <span id="v-30"></span> | Visitas: <span id="vis-30"></span><br>
+                            Reclamações: <span id="rec-30" style="color:red"></span> | Devoluções: <span id="dev-30" style="color:orange"></span>
+                        </div>
+                    </div>
+
+                    <!-- Gráfico Horizontal Cruzado -->
+                    <div class="grafico-container">
+                        <canvas id="graficoCruzado"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sugestão Top 20 -->
+            <div class="card">
+                <h3>📦 Top 20 Produtos Sugeridos para Enviar ao FULL</h3>
+                <p style="font-size: 13px; color: #666;">Clique em qualquer linha da tabela para carregar instantaneamente as métricas e o gráfico acima.</p>
+                <div style="max-height: 400px; overflow-y: auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Capa</th>
+                                <th>MLB</th>
+                                <th>Título do Produto</th>
+                                <th>Vendas (30d)</th>
+                                <th>Visitas (30d)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabela-sugestoes"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let dadosGlobais = {};
+        let meuGrafico = null;
+        const URL_JSON_GITHUB = 'banco_de_dados.json'; 
+
+        fetch(URL_JSON_GITHUB)
+            .then(res => res.json())
+            .then(data => {
+                dadosGlobais = data;
+                document.getElementById('lbl-atualizacao').innerText = data.ultima_atualizacao;
+                const select = document.getElementById('conta-select');
+                select.innerHTML = '<option value="">Selecione a sua conta...</option>';
+                Object.keys(data.contas).forEach(conta => {
+                    const opt = document.createElement('option');
+                    opt.value = conta;
+                    opt.innerText = conta;
+                    select.appendChild(opt);
+                });
+            });
+
+        function atualizarManual() {
+            alert("Para atualizar os dados, execute o script 'gerar_full.py' no seu computador e envie o novo 'banco_de_dados.json' para o GitHub.");
+            location.reload();
+        }
+
+        function mudarConta() {
+            const contaSelecionada = document.getElementById('conta-select').value;
+            const painel = document.getElementById('painel-conteudo');
+            if (!contaSelecionada) { painel.classList.add('hidden'); return; }
+            painel.classList.remove('hidden');
+            carregarSugestoes(contaSelecionada);
+            document.getElementById('resultado-busca').style.display = 'none';
+        }
+
+        function renderizarGrafico(produto) {
+            const ctx = document.getElementById('graficoCruzado').getContext('2d');
+            if (meuGrafico) { meuGrafico.destroy(); }
+
+            meuGrafico = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: ['7 Dias', '14 Dias', '30 Dias'],
+                    datasets: [
+                        {
+                            label: 'Vendas',
+                            data: [produto.vendas['7d'], produto.vendas['14d'], produto.vendas['30d']],
+                            backgroundColor: '#28a745',
+                        },
+                        {
+                            label: 'Visitas',
+                            data: [produto.visitas['7d'], produto.visitas['14d'], produto.visitas['30d']],
+                            backgroundColor: '#3483fa',
+                        }
+                    ]
+                },
+                options: {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                }
+            });
+        }
+
+        function preencherDadosProduto(produto) {
+            document.getElementById('resultado-busca').style.display = 'block';
+            document.getElementById('res-titulo').innerText = produto.titulo;
+            document.getElementById('res-img').src = produto.thumbnail;
+            document.getElementById('res-exp').innerText = produto.experiencia_compra;
+            document.getElementById('res-pecas-full').innerText = produto.pecas_no_full;
+            document.getElementById('res-preco').innerText = produto.preco_atual.toFixed(2);
+            
+            document.getElementById('v-7').innerText = produto.vendas['7d'];
+            document.getElementById('vis-7').innerText = produto.visitas['7d'];
+            document.getElementById('rec-7').innerText = produto.reclamacoes['7d'];
+            document.getElementById('dev-7').innerText = produto.devolucoes['7d'];
+
+            document.getElementById('v-14').innerText = produto.vendas['14d'];
+            document.getElementById('vis-14').innerText = produto.visitas['14d'];
+            document.getElementById('rec-14').innerText = produto.reclamacoes['14d'];
+            document.getElementById('dev-14').innerText = produto.devolucoes['14d'];
+
+            document.getElementById('v-30').innerText = produto.vendas['30d'];
+            document.getElementById('vis-30').innerText = produto.visitas['30d'];
+            document.getElementById('rec-30').innerText = produto.reclamacoes['30d'];
+            document.getElementById('dev-30').innerText = produto.devolucoes['30d'];
+
+            renderizarGrafico(produto);
+        }
+
+        function buscarMlb() {
+            const contaSelecionada = document.getElementById('conta-select').value;
+            const mlbProcurado = document.getElementById('mlb_input').value.trim().toUpperCase();
+            const produto = dadosGlobais.contas[contaSelecionada].produtos[mlbProcurado];
+            if (!produto) { alert("MLB não encontrado nesta conta."); return; }
+            preencherDadosProduto(produto);
+        }
+
+        function carregarSugestoes(conta) {
+            const sugestoes = dadosGlobais.contas[conta].sugestoes_full;
+            const tbody = document.getElementById('tabela-sugestoes');
+            tbody.innerHTML = '';
+
+            sugestoes.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.onclick = () => {
+                    const produtoCompleto = dadosGlobais.contas[conta].produtos[item.mlb];
+                    document.getElementById('mlb_input').value = item.mlb;
+                    preencherDadosProduto(produtoCompleto);
+                };
+                tr.innerHTML = `
+                    <td><img src="${item.thumbnail}" style="width:40px;height:40px;object-fit:cover;border-radius:4px;"></td>
+                    <td><b>${item.mlb}</b></td>
+                    <td>${item.titulo}</td>
+                    <td><b>${item.vendas_30d}</b></td>
+                    <td>${item.visitas_30d}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    </script>
+</body>
+</html>
