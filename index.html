@@ -2,9 +2,42 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel de Gestão - Envios ao FULL</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="static/style.css">
+    <style>
+        .valor-financeiro {
+            color: #28a745;
+            font-size: 0.9em;
+            margin-top: 5px;
+            display: block;
+        }
+        .filtros-grafico {
+            margin-top: 25px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+        .btn-filtro {
+            padding: 8px 16px;
+            border: 1px solid #ccc;
+            background: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+        .btn-filtro:hover {
+            background: #f1f1f1;
+        }
+        .btn-filtro.ativo {
+            background: #3483fa;
+            color: #fff;
+            border-color: #3483fa;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -35,38 +68,51 @@
                         <img id="res-img" src="" alt="Capa" style="width: 80px; height: 80px; object-fit: cover; border-radius: 4px;">
                         <div>
                             <h4 id="res-titulo" style="color: #333; margin: 0 0 8px 0;"></h4>
-                            <p style="margin: 4px 0;"><b>Logística:</b> <span id="res-exp-texto" style="color: #3483fa; font-weight: bold;"></span> | <b>Score Exp.:</b> <span id="res-exp" style="color: green; font-weight: bold;"></span> | <b>Peças no FULL:</b> <span id="res-pecas-full">0</span></p>
+                            <p style="margin: 4px 0;"><b>Logística:</b> <span id="res-exp-texto" style="color: #3483fa; font-weight: bold;"></span> | <b>Score Exp.:</b> <span id="res-exp" style="color: #666; font-weight: bold;"></span> | <b>Peças no FULL:</b> <span id="res-pecas-full">0</span></p>
                             <p style="margin: 4px 0;"><b>Preço Atual:</b> R$ <span id="res-preco" style="font-size: 16px; color: #3483fa; font-weight: bold;"></span></p>
                         </div>
                     </div>
                     
                     <div class="grid-metricas" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 20px;">
                         <div class="bloco-metrica" style="background: #f9f9f9; padding: 12px; border-radius: 6px; border: 1px solid #eee;">
-                            <b>7 Dias</b><br>
-                            Vendas: <b id="v-7" style="color: #28a745;">0</b> | Visitas: <span id="vis-7">0</span><br>
-                            Reclamações: <span id="rec-7" style="color:red">0</span> | Devoluções: <span id="dev-7" style="color:orange">0</span>
+                            <b>Últimos 7 Dias</b><br>
+                            Vendas: <b id="v-7">0</b> | Visitas: <span id="vis-7">0</span><br>
+                            <b class="valor-financeiro" id="fat-7">Faturamento: R$ 0,00</b>
+                            <hr style="border: 0; border-top: 1px solid #ddd; margin: 8px 0;">
+                            Reclamações: <span id="rec-7" style="color:red; font-weight: bold;">0</span> | Devoluções: <span id="dev-7" style="color:orange; font-weight: bold;">0</span>
                         </div>
                         <div class="bloco-metrica" style="background: #f9f9f9; padding: 12px; border-radius: 6px; border: 1px solid #eee;">
-                            <b>14 Dias</b><br>
-                            Vendas: <b id="v-14" style="color: #28a745;">0</b> | Visitas: <span id="vis-14">0</span><br>
-                            Reclamações: <span id="rec-14" style="color:red">0</span> | Devoluções: <span id="dev-14" style="color:orange">0</span>
+                            <b>Últimos 14 Dias</b><br>
+                            Vendas: <b id="v-14">0</b> | Visitas: <span id="vis-14">0</span><br>
+                            <b class="valor-financeiro" id="fat-14">Faturamento: R$ 0,00</b>
+                            <hr style="border: 0; border-top: 1px solid #ddd; margin: 8px 0;">
+                            Reclamações: <span id="rec-14" style="color:red; font-weight: bold;">0</span> | Devoluções: <span id="dev-14" style="color:orange; font-weight: bold;">0</span>
                         </div>
                         <div class="bloco-metrica" style="background: #f9f9f9; padding: 12px; border-radius: 6px; border: 1px solid #eee;">
-                            <b>30 Dias</b><br>
-                            Vendas: <b id="v-30" style="color: #28a745;">0</b> | Visitas: <span id="vis-30">0</span><br>
-                            Reclamações: <span id="rec-30" style="color:red">0</span> | Devoluções: <span id="dev-30" style="color:orange">0</span>
+                            <b>Últimos 30 Dias</b><br>
+                            Vendas: <b id="v-30">0</b> | Visitas: <span id="vis-30">0</span><br>
+                            <b class="valor-financeiro" id="fat-30">Faturamento: R$ 0,00</b>
+                            <hr style="border: 0; border-top: 1px solid #ddd; margin: 8px 0;">
+                            Reclamações: <span id="rec-30" style="color:red; font-weight: bold;">0</span> | Devoluções: <span id="dev-30" style="color:orange; font-weight: bold;">0</span>
                         </div>
                     </div>
 
-                    <div class="grafico-container" style="position: relative; height: 250px; margin-top: 20px;">
-                        <canvas id="graficoCruzado"></canvas>
+                    <div class="filtros-grafico">
+                        <button id="btn-filtro-todos" class="btn-filtro ativo" onclick="atualizarPeriodoGrafico('todos')">Evolução (Linha do Tempo)</button>
+                        <button id="btn-filtro-30d" class="btn-filtro" onclick="atualizarPeriodoGrafico('30d')">Apenas 30 Dias</button>
+                        <button id="btn-filtro-14d" class="btn-filtro" onclick="atualizarPeriodoGrafico('14d')">Apenas 14 Dias</button>
+                        <button id="btn-filtro-7d" class="btn-filtro" onclick="atualizarPeriodoGrafico('7d')">Apenas 7 Dias</button>
+                    </div>
+
+                    <div class="grafico-container" style="position: relative; height: 300px; margin-top: 15px;">
+                        <canvas id="graficoCronologico"></canvas>
                     </div>
                 </div>
             </div>
 
             <div class="card" style="margin-top: 20px;">
-                <h3>📦 Top 20 Produtos Sugeridos para Enviar ao FULL</h3>
-                <p style="font-size: 13px; color: #666;">Clique em qualquer linha da tabela para carregar instantaneamente as métricas e o gráfico acima.</p>
+                <h3>📦 Top 20 Sugestões para Enviar ao FULL (Ordem de Vendas)</h3>
+                <p style="font-size: 13px; color: #666;">Clique em qualquer linha da tabela para carregar as métricas detalhadas.</p>
                 <div style="max-height: 400px; overflow-y: auto;">
                     <table style="width: 100%; border-collapse: collapse;">
                         <thead>
@@ -75,7 +121,7 @@
                                 <th style="padding: 8px;">MLB</th>
                                 <th style="padding: 8px;">Título do Produto</th>
                                 <th style="padding: 8px;">Vendas (30d)</th>
-                                <th style="padding: 8px;">Visitas (30d)</th>
+                                <th style="padding: 8px;">Faturamento (30d)</th>
                             </tr>
                         </thead>
                         <tbody id="tabela-sugestoes"></tbody>
@@ -88,9 +134,10 @@
     <script>
         let dadosGlobais = {};
         let meuGrafico = null;
-        const URL_JSON_GITHUB = 'banco_de_dados.json'; 
+        let produtoAtual = null; 
+        const URL_JSON_GITHUB = 'banco_de_dados.json?v=' + new Date().getTime(); 
 
-        fetch(URL_JSON_GITHUB + '?v=' + new Date().getTime())
+        fetch(URL_JSON_GITHUB)
             .then(res => res.json())
             .then(data => {
                 dadosGlobais = data;
@@ -117,70 +164,132 @@
             painel.classList.remove('hidden');
             carregarSugestoes(contaSelecionada);
             document.getElementById('resultado-busca').style.display = 'none';
+            produtoAtual = null;
         }
 
-        function renderizarGrafico(produto) {
-            const ctx = document.getElementById('graficoCruzado').getContext('2d');
+        function renderizarGrafico(produto, periodo = 'todos') {
+            const ctx = document.getElementById('graficoCronologico').getContext('2d');
             if (meuGrafico) { meuGrafico.destroy(); }
 
             const vendas = produto.vendas || { '7d': 0, '14d': 0, '30d': 0 };
             const visitas = produto.visitas || { '7d': 0, '14d': 0, '30d': 0 };
 
+            let labels = [];
+            let dataVendas = [];
+            let dataVisitas = [];
+
+            if (periodo === 'todos') {
+                labels = ['Acumulado 30 Dias', 'Acumulado 14 Dias', 'Acumulado 7 Dias'];
+                dataVendas = [vendas['30d'], vendas['14d'], vendas['7d']];
+                dataVisitas = [visitas['30d'], visitas['14d'], visitas['7d']];
+            } else if (periodo === '30d') {
+                labels = ['Últimos 30 Dias'];
+                dataVendas = [vendas['30d']];
+                dataVisitas = [visitas['30d']];
+            } else if (periodo === '14d') {
+                labels = ['Últimos 14 Dias'];
+                dataVendas = [vendas['14d']];
+                dataVisitas = [visitas['14d']];
+            } else if (periodo === '7d') {
+                labels = ['Últimos 7 Dias'];
+                dataVendas = [vendas['7d']];
+                dataVisitas = [visitas['7d']];
+            }
+
+            // O gráfico será sempre do tipo linha ('line') para manter a consistência visual.
             meuGrafico = new Chart(ctx, {
-                type: 'bar',
+                type: 'line',
                 data: {
-                    labels: ['7 Dias', '14 Dias', '30 Dias'],
+                    labels: labels,
                     datasets: [
                         {
-                            label: 'Vendas',
-                            data: [vendas['7d'], vendas['14d'], vendas['30d']],
-                            backgroundColor: '#28a745',
+                            label: 'Vendas (Qtd)',
+                            data: dataVendas,
+                            borderColor: '#28a745',
+                            backgroundColor: 'rgba(40, 167, 69, 0.2)',
+                            fill: true,
+                            tension: 0.3,
+                            borderWidth: 3,
+                            pointRadius: 6,
+                            pointHoverRadius: 8
                         },
                         {
                             label: 'Visitas',
-                            data: [visitas['7d'], visitas['14d'], visitas['30d']],
-                            backgroundColor: '#3483fa',
+                            data: dataVisitas,
+                            borderColor: '#3483fa',
+                            backgroundColor: 'rgba(52, 131, 250, 0.2)',
+                            fill: true,
+                            tension: 0.3,
+                            borderWidth: 3,
+                            pointRadius: 6,
+                            pointHoverRadius: 8
                         }
                     ]
                 },
                 options: {
-                    indexAxis: 'y',
                     responsive: true,
                     maintainAspectRatio: false,
+                    scales: {
+                        y: { 
+                            beginAtZero: true,
+                            title: { display: true, text: 'Volume' }
+                        }
+                    },
+                    plugins: {
+                        tooltip: { mode: 'index', intersect: false }
+                    }
                 }
             });
         }
 
+        function atualizarPeriodoGrafico(periodo) {
+            document.querySelectorAll('.btn-filtro').forEach(btn => btn.classList.remove('ativo'));
+            document.getElementById('btn-filtro-' + periodo).classList.add('ativo');
+
+            if (produtoAtual) {
+                renderizarGrafico(produtoAtual, periodo);
+            }
+        }
+
+        function formatarMoeda(valor) {
+            return 'Faturamento: ' + Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+
         function preencherDadosProduto(produto) {
+            produtoAtual = produto; 
             document.getElementById('resultado-busca').style.display = 'block';
             document.getElementById('res-titulo').innerText = produto.titulo || '';
             document.getElementById('res-img').src = produto.thumbnail || '';
-            document.getElementById('res-exp').innerText = produto.experiencia_compra ?? 100;
+            document.getElementById('res-exp').innerText = produto.experiencia_compra || 'N/A';
             document.getElementById('res-exp-texto').innerText = produto.experiencia_compra_texto || 'PADRÃO';
             document.getElementById('res-pecas-full').innerText = produto.pecas_no_full ?? 0;
-            document.getElementById('res-preco').innerText = Number(produto.preco_atual || 0).toFixed(2);
+            document.getElementById('res-preco').innerText = Number(produto.preco_atual || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
             
             const v = produto.vendas || { '7d': 0, '14d': 0, '30d': 0 };
+            const fat = produto.faturamento || { '7d': 0, '14d': 0, '30d': 0 };
             const vis = produto.visitas || { '7d': 0, '14d': 0, '30d': 0 };
             const rec = produto.reclamacoes || { '7d': 0, '14d': 0, '30d': 0 };
             const dev = produto.devolucoes || { '7d': 0, '14d': 0, '30d': 0 };
 
             document.getElementById('v-7').innerText = v['7d'];
+            document.getElementById('fat-7').innerText = formatarMoeda(fat['7d']);
             document.getElementById('vis-7').innerText = vis['7d'];
             document.getElementById('rec-7').innerText = rec['7d'];
             document.getElementById('dev-7').innerText = dev['7d'];
 
             document.getElementById('v-14').innerText = v['14d'];
+            document.getElementById('fat-14').innerText = formatarMoeda(fat['14d']);
             document.getElementById('vis-14').innerText = vis['14d'];
             document.getElementById('rec-14').innerText = rec['14d'];
             document.getElementById('dev-14').innerText = dev['14d'];
 
             document.getElementById('v-30').innerText = v['30d'];
+            document.getElementById('fat-30').innerText = formatarMoeda(fat['30d']);
             document.getElementById('vis-30').innerText = vis['30d'];
             document.getElementById('rec-30').innerText = rec['30d'];
             document.getElementById('dev-30').innerText = dev['30d'];
 
-            renderizarGrafico(produto);
+            atualizarPeriodoGrafico('todos');
         }
 
         function buscarMlb() {
@@ -188,7 +297,7 @@
             const mlbProcurado = document.getElementById('mlb_input').value.trim().toUpperCase();
             
             if (!contaSelecionada) { alert("Selecione uma conta primeiro."); return; }
-            if (!mlbProcurado) { alert("Digite um MLB."); return; }
+            if (!mlbProcurado) { alert("Digite um MLB válido."); return; }
 
             const produtosDaConta = dadosGlobais.contas[contaSelecionada].produtos || {};
             const produto = produtosDaConta[mlbProcurado];
@@ -218,16 +327,18 @@
                     document.getElementById('mlb_input').value = item.mlb;
                     if (produtoCompleto) {
                         preencherDadosProduto(produtoCompleto);
-                    } else {
-                        alert("Detalhes deste produto não encontrados.");
+                        document.getElementById('resultado-busca').scrollIntoView({ behavior: 'smooth' });
                     }
                 };
+                
+                const faturamentoExibicao = Number(item.faturamento_30d || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
                 tr.innerHTML = `
                     <td style="padding: 8px;"><img src="${item.thumbnail}" style="width:40px;height:40px;object-fit:cover;border-radius:4px;"></td>
                     <td style="padding: 8px;"><b>${item.mlb}</b></td>
                     <td style="padding: 8px;">${item.titulo}</td>
-                    <td style="padding: 8px;"><b style="color:#28a745;">${item.vendas_30d}</b></td>
-                    <td style="padding: 8px;">${item.visitas_30d}</td>
+                    <td style="padding: 8px;"><b style="color:#28a745; font-size:16px;">${item.vendas_30d}</b></td>
+                    <td style="padding: 8px; color:#28a745; font-weight:bold;">${faturamentoExibicao}</td>
                 `;
                 tbody.appendChild(tr);
             });
