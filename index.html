@@ -90,7 +90,7 @@
         let meuGrafico = null;
         const URL_JSON_GITHUB = 'banco_de_dados.json'; 
 
-        fetch(URL_JSON_GITHUB + '?v=' + new Date().getTime()) // Evita cache do JSON no fetch
+        fetch(URL_JSON_GITHUB + '?v=' + new Date().getTime())
             .then(res => res.json())
             .then(data => {
                 dadosGlobais = data;
@@ -153,7 +153,6 @@
 
         function preencherDadosProduto(produto) {
             document.getElementById('resultado-busca').style.display = 'block';
-            document.getElementById('res-titulo residencial').innerText = produto.titulo || '';
             document.getElementById('res-titulo').innerText = produto.titulo || '';
             document.getElementById('res-img').src = produto.thumbnail || '';
             document.getElementById('res-exp').innerText = produto.experiencia_compra ?? 100;
@@ -161,7 +160,6 @@
             document.getElementById('res-pecas-full').innerText = produto.pecas_no_full ?? 0;
             document.getElementById('res-preco').innerText = Number(produto.preco_atual || 0).toFixed(2);
             
-            // Garantindo leitura segura dos sub-objetos
             const v = produto.vendas || { '7d': 0, '14d': 0, '30d': 0 };
             const vis = produto.visitas || { '7d': 0, '14d': 0, '30d': 0 };
             const rec = produto.reclamacoes || { '7d': 0, '14d': 0, '30d': 0 };
