@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>Painel de Gestão - Envios ao FULL</title>
-    <!-- Incluindo Chart.js para os gráficos -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="static/style.css">
 </head>
@@ -36,7 +35,7 @@
                         <img id="res-img" src="" alt="Capa" style="width: 80px; height: 80px; object-fit: cover; border-radius: 4px;">
                         <div>
                             <h4 id="res-titulo" style="color: #333; margin: 0 0 8px 0;"></h4>
-                            <p style="margin: 4px 0;"><b>Logística:</b> <span id="res-exp-texto" style="color: #3483fa; font-weight: bold;"></span> | <b>Score Exp. (0-100):</b> <span id="res-exp" style="color: green; font-weight: bold;"></span> | <b>Peças no FULL:</b> <span id="res-pecas-full">0</span></p>
+                            <p style="margin: 4px 0;"><b>Logística:</b> <span id="res-exp-texto" style="color: #3483fa; font-weight: bold;"></span> | <b>Score Exp.:</b> <span id="res-exp" style="color: green; font-weight: bold;"></span> | <b>Peças no FULL:</b> <span id="res-pecas-full">0</span></p>
                             <p style="margin: 4px 0;"><b>Preço Atual:</b> R$ <span id="res-preco" style="font-size: 16px; color: #3483fa; font-weight: bold;"></span></p>
                         </div>
                     </div>
@@ -44,29 +43,27 @@
                     <div class="grid-metricas" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 20px;">
                         <div class="bloco-metrica" style="background: #f9f9f9; padding: 12px; border-radius: 6px; border: 1px solid #eee;">
                             <b>7 Dias</b><br>
-                            Vendas: <span id="v-7"></span> | Visitas: <span id="vis-7"></span><br>
-                            Reclamações: <span id="rec-7" style="color:red"></span> | Devoluções: <span id="dev-7" style="color:orange"></span>
+                            Vendas: <b id="v-7" style="color: #28a745;">0</b> | Visitas: <span id="vis-7">0</span><br>
+                            Reclamações: <span id="rec-7" style="color:red">0</span> | Devoluções: <span id="dev-7" style="color:orange">0</span>
                         </div>
                         <div class="bloco-metrica" style="background: #f9f9f9; padding: 12px; border-radius: 6px; border: 1px solid #eee;">
                             <b>14 Dias</b><br>
-                            Vendas: <span id="v-14"></span> | Visitas: <span id="vis-14"></span><br>
-                            Reclamações: <span id="rec-14" style="color:red"></span> | Devoluções: <span id="dev-14" style="color:orange"></span>
+                            Vendas: <b id="v-14" style="color: #28a745;">0</b> | Visitas: <span id="vis-14">0</span><br>
+                            Reclamações: <span id="rec-14" style="color:red">0</span> | Devoluções: <span id="dev-14" style="color:orange">0</span>
                         </div>
                         <div class="bloco-metrica" style="background: #f9f9f9; padding: 12px; border-radius: 6px; border: 1px solid #eee;">
                             <b>30 Dias</b><br>
-                            Vendas: <span id="v-30"></span> | Visitas: <span id="vis-30"></span><br>
-                            Reclamações: <span id="rec-30" style="color:red"></span> | Devoluções: <span id="dev-30" style="color:orange"></span>
+                            Vendas: <b id="v-30" style="color: #28a745;">0</b> | Visitas: <span id="vis-30">0</span><br>
+                            Reclamações: <span id="rec-30" style="color:red">0</span> | Devoluções: <span id="dev-30" style="color:orange">0</span>
                         </div>
                     </div>
 
-                    <!-- Gráfico Horizontal Cruzado -->
                     <div class="grafico-container" style="position: relative; height: 250px; margin-top: 20px;">
                         <canvas id="graficoCruzado"></canvas>
                     </div>
                 </div>
             </div>
 
-            <!-- Sugestão Top 20 -->
             <div class="card" style="margin-top: 20px;">
                 <h3>📦 Top 20 Produtos Sugeridos para Enviar ao FULL</h3>
                 <p style="font-size: 13px; color: #666;">Clique em qualquer linha da tabela para carregar instantaneamente as métricas e o gráfico acima.</p>
@@ -93,24 +90,24 @@
         let meuGrafico = null;
         const URL_JSON_GITHUB = 'banco_de_dados.json'; 
 
-        fetch(URL_JSON_GITHUB)
+        fetch(URL_JSON_GITHUB + '?v=' + new Date().getTime()) // Evita cache do JSON no fetch
             .then(res => res.json())
             .then(data => {
                 dadosGlobais = data;
-                document.getElementById('lbl-atualizacao').innerText = data.ultima_atualizacao;
+                document.getElementById('lbl-atualizacao').innerText = data.ultima_atualizacao || 'Desconhecida';
                 const select = document.getElementById('conta-select');
                 select.innerHTML = '<option value="">Selecione a sua conta...</option>';
-                Object.keys(data.contas).forEach(conta => {
+                Object.keys(data.contas || {}).forEach(conta => {
                     const opt = document.createElement('option');
                     opt.value = conta;
                     opt.innerText = conta;
                     select.appendChild(opt);
                 });
-            });
+            })
+            .catch(err => console.error("Erro ao carregar o JSON:", err));
 
         function atualizarManual() {
-            alert("Para atualizar os dados, execute o script 'gerar_full.py' no seu computador e envie o novo 'banco_de_dados.json' para o GitHub.");
-            location.reload();
+            location.reload(true);
         }
 
         function mudarConta() {
@@ -126,6 +123,9 @@
             const ctx = document.getElementById('graficoCruzado').getContext('2d');
             if (meuGrafico) { meuGrafico.destroy(); }
 
+            const vendas = produto.vendas || { '7d': 0, '14d': 0, '30d': 0 };
+            const visitas = produto.visitas || { '7d': 0, '14d': 0, '30d': 0 };
+
             meuGrafico = new Chart(ctx, {
                 type: 'bar',
                 data: {
@@ -133,12 +133,12 @@
                     datasets: [
                         {
                             label: 'Vendas',
-                            data: [produto.vendas['7d'], produto.vendas['14d'], produto.vendas['30d']],
+                            data: [vendas['7d'], vendas['14d'], vendas['30d']],
                             backgroundColor: '#28a745',
                         },
                         {
                             label: 'Visitas',
-                            data: [produto.visitas['7d'], produto.visitas['14d'], produto.visitas['30d']],
+                            data: [visitas['7d'], visitas['14d'], visitas['30d']],
                             backgroundColor: '#3483fa',
                         }
                     ]
@@ -153,27 +153,34 @@
 
         function preencherDadosProduto(produto) {
             document.getElementById('resultado-busca').style.display = 'block';
-            document.getElementById('res-titulo').innerText = produto.titulo;
-            document.getElementById('res-img').src = produto.thumbnail;
-            document.getElementById('res-exp').innerText = produto.experiencia_compra;
-            document.getElementById('res-exp-texto').innerText = produto.experiencia_compra_texto;
-            document.getElementById('res-pecas-full').innerText = produto.pecas_no_full;
-            document.getElementById('res-preco').innerText = produto.preco_atual.toFixed(2);
+            document.getElementById('res-titulo residencial').innerText = produto.titulo || '';
+            document.getElementById('res-titulo').innerText = produto.titulo || '';
+            document.getElementById('res-img').src = produto.thumbnail || '';
+            document.getElementById('res-exp').innerText = produto.experiencia_compra ?? 100;
+            document.getElementById('res-exp-texto').innerText = produto.experiencia_compra_texto || 'PADRÃO';
+            document.getElementById('res-pecas-full').innerText = produto.pecas_no_full ?? 0;
+            document.getElementById('res-preco').innerText = Number(produto.preco_atual || 0).toFixed(2);
             
-            document.getElementById('v-7').innerText = produto.vendas['7d'];
-            document.getElementById('vis-7').innerText = produto.visitas['7d'];
-            document.getElementById('rec-7').innerText = produto.reclamacoes['7d'];
-            document.getElementById('dev-7').innerText = produto.devolucoes['7d'];
+            // Garantindo leitura segura dos sub-objetos
+            const v = produto.vendas || { '7d': 0, '14d': 0, '30d': 0 };
+            const vis = produto.visitas || { '7d': 0, '14d': 0, '30d': 0 };
+            const rec = produto.reclamacoes || { '7d': 0, '14d': 0, '30d': 0 };
+            const dev = produto.devolucoes || { '7d': 0, '14d': 0, '30d': 0 };
 
-            document.getElementById('v-14').innerText = produto.vendas['14d'];
-            document.getElementById('vis-14').innerText = produto.visitas['14d'];
-            document.getElementById('rec-14').innerText = produto.reclamacoes['14d'];
-            document.getElementById('dev-14').innerText = produto.devolucoes['14d'];
+            document.getElementById('v-7').innerText = v['7d'];
+            document.getElementById('vis-7').innerText = vis['7d'];
+            document.getElementById('rec-7').innerText = rec['7d'];
+            document.getElementById('dev-7').innerText = dev['7d'];
 
-            document.getElementById('v-30').innerText = produto.vendas['30d'];
-            document.getElementById('vis-30').innerText = produto.visitas['30d'];
-            document.getElementById('rec-30').innerText = produto.reclamacoes['30d'];
-            document.getElementById('dev-30').innerText = produto.devolucoes['30d'];
+            document.getElementById('v-14').innerText = v['14d'];
+            document.getElementById('vis-14').innerText = vis['14d'];
+            document.getElementById('rec-14').innerText = rec['14d'];
+            document.getElementById('dev-14').innerText = dev['14d'];
+
+            document.getElementById('v-30').innerText = v['30d'];
+            document.getElementById('vis-30').innerText = vis['30d'];
+            document.getElementById('rec-30').innerText = rec['30d'];
+            document.getElementById('dev-30').innerText = dev['30d'];
 
             renderizarGrafico(produto);
         }
@@ -182,14 +189,14 @@
             const contaSelecionada = document.getElementById('conta-select').value;
             const mlbProcurado = document.getElementById('mlb_input').value.trim().toUpperCase();
             
-            if (!contaSelecionada) {
-                alert("Selecione uma conta primeiro.");
-                return;
-            }
+            if (!contaSelecionada) { alert("Selecione uma conta primeiro."); return; }
+            if (!mlbProcurado) { alert("Digite um MLB."); return; }
 
-            const produto = dadosGlobais.contas[contaSelecionada].produtos[mlbProcurado];
+            const produtosDaConta = dadosGlobais.contas[contaSelecionada].produtos || {};
+            const produto = produtosDaConta[mlbProcurado];
+            
             if (!produto) { 
-                alert("MLB não encontrado nesta conta."); 
+                alert("MLB não encontrado nesta conta ou o anúncio não está ativo."); 
                 return; 
             }
             preencherDadosProduto(produto);
@@ -201,7 +208,7 @@
             tbody.innerHTML = '';
 
             if (sugestoes.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:10px;">Nenhuma sugestão encontrada no momento.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:10px;">Nenhuma sugestão encontrada.</td></tr>';
                 return;
             }
 
@@ -211,13 +218,17 @@
                 tr.onclick = () => {
                     const produtoCompleto = dadosGlobais.contas[conta].produtos[item.mlb];
                     document.getElementById('mlb_input').value = item.mlb;
-                    preencherDadosProduto(produtoCompleto);
+                    if (produtoCompleto) {
+                        preencherDadosProduto(produtoCompleto);
+                    } else {
+                        alert("Detalhes deste produto não encontrados.");
+                    }
                 };
                 tr.innerHTML = `
                     <td style="padding: 8px;"><img src="${item.thumbnail}" style="width:40px;height:40px;object-fit:cover;border-radius:4px;"></td>
                     <td style="padding: 8px;"><b>${item.mlb}</b></td>
                     <td style="padding: 8px;">${item.titulo}</td>
-                    <td style="padding: 8px;"><b>${item.vendas_30d}</b></td>
+                    <td style="padding: 8px;"><b style="color:#28a745;">${item.vendas_30d}</b></td>
                     <td style="padding: 8px;">${item.visitas_30d}</td>
                 `;
                 tbody.appendChild(tr);
