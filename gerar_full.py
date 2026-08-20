@@ -14,7 +14,6 @@ def processar_item(item_id, token, vendas_por_item):
         if r_item.status_code != 200: return None
         item_data = r_item.json()
 
-        # FILTRO: Apenas anúncios ativos
         if item_data.get("status") != "active":
             return None
 
@@ -68,11 +67,11 @@ def processar_item(item_id, token, vendas_por_item):
 
         titulo = item_data.get("title", "Sem Título")
         
-        # CORREÇÃO DE HTTPS NAS IMAGENS (Evita erro de conteúdo misto)
         raw_thumb = item_data.get("thumbnail", "")
         thumbnail = raw_thumb.replace("http://", "https://") if raw_thumb else ""
         
-        vendas_item = vendas_por_item.get(item_id, {"7d": 0, "14d": 0, "30d": 0})
+        # Puxa o dicionário de vendas mapeado para este item específico
+        vendas_item = vendas_por_item.get(str(item_id), {"7d": 0, "14d": 0, "30d": 0})
 
         info_produto = {
             "titulo": titulo,
@@ -131,8 +130,8 @@ def gerar_banco_full():
     contas = renovar_todos_os_tokens(contas)
     dados_consolidados = {"ultima_atualizacao": datetime.now().strftime("%d/%m/%Y %H:%M:%S"), "contas": {}}
     
-    hoje = datetime.now(timezone.utc).replace(tzinfo=None)
-    data_30d_atras = (hoje - timedelta(days=30)).isoformat() + "Z"
+    hoje = datetime.now(timezone.utc)
+    data_30d_atras = (hoje - timedelta(days=30)).strftime("%Y-%m-%dT%H:%M:%S.000-00:00")
 
     for user_id, dados_conta in contas.items():
         nome_loja = dados_conta.get('nome_da_conta', f'ID {user_id}')
@@ -141,26 +140,52 @@ def gerar_banco_full():
         
         print(f"\n--- Processando loja: {nome_loja} ---")
         
+        # 1. Puxar pedidos dos últimos 30 dias de forma segura
+        print(f"[{nome_loja}] Varrendo pedidos pagos...")
         vendas_por_item = {}
         offset_pedidos = 0
         while True:
             url_orders = f"https://api.mercadolibre.com/orders/search?seller={user_id}&order.date_created.from={data_30d_atras}&offset={offset_pedidos}&limit=50&status=paid"
             resp = requests.get(url_orders, headers=headers, timeout=15)
             if resp.status_code != 200: break
-            results = resp.json().get("results", [])
+            data_resp = resp.json()
+            results = data_resp.get("results", [])
             if not results: break
+            
             for pedido in results:
-                data_pedido = datetime.strptime(pedido.get("date_created", "").split(".")[0], "%Y-%m-%dT%H:%M:%S")
+                # Tratamento seguro da data do pedido
+                data_criacao_str = pedido.get("date_created", "")
+                try:
+                    # Remove o fuso ou converte limpando os milissegundos
+                    data_limpa = data_criacao_str.split(".")[0]
+                    data_pedido = datetime.strptime(data_limpa, "%Y-%m-%dT%H:%M:%S").replace(tzinfo=timezone.utc)
+                except:
+                    data_pedido = hoje
+
                 for item_info in pedido.get("order_items", []):
-                    item_id = item_info.get("item", {}).get("id")
-                    qtd = item_info.get("quantity", 1)
-                    if item_id not in vendas_por_item: vendas_por_item[item_id] = {"7d": 0, "14d": 0, "30d": 0}
+                    item_obj = item_info.get("item", {})
+                    item_id = str(item_obj.get("id", ""))
+                    if not item_id: continue
+                    
+                    qtd = int(item_info.get("quantity", 1))
+                    
+                    if item_id not in vendas_por_item: 
+                        vendas_por_item[item_id] = {"7d": 0, "14d": 0, "30d": 0}
+                    
                     vendas_por_item[item_id]["30d"] += qtd
-                    if data_pedido >= (hoje - timedelta(days=14)): vendas_por_item[item_id]["14d"] += qtd
-                    if data_pedido >= (hoje - timedelta(days=7)): vendas_por_item[item_id]["7d"] += qtd
+                    
+                    if data_pedido >= (hoje - timedelta(days=14)): 
+                        vendas_por_item[item_id]["14d"] += qtd
+                    if data_pedido >= (hoje - timedelta(days=7)): 
+                        vendas_por_item[item_id]["7d"] += qtd
+
             if len(results) < 50: break
             offset_pedidos += 50
+            
+        print(f"[{nome_loja}] Total de itens com vendas mapeadas: {len(vendas_por_item)}")
 
+        # 2. Puxar anúncios ativos da loja
+        print(f"[{nome_loja}] Buscando lista de anúncios ativos...")
         item_ids = []
         offset_items = 0
         while True:
@@ -169,10 +194,11 @@ def gerar_banco_full():
             if resp.status_code != 200: break
             ids = resp.json().get("results", [])
             if not ids: break
-            item_ids.extend(ids)
+            item_ids.extend([str(i) for i in ids])
             if len(ids) < 50: break
             offset_items += 50
 
+        # 3. Processamento Paralelo
         produtos_loja = {}
         sugestoes_lista = []
         concluidos = 0
@@ -198,7 +224,7 @@ def gerar_banco_full():
 
     with open(ARQUIVO_SAIDA, "w", encoding="utf-8") as f:
         json.dump(dados_consolidados, f, indent=4, ensure_ascii=False)
-    print("\n[SUCESSO] Banco gerado com imagens seguras HTTPS!")
+    print("\n[SUCESSO] Banco de dados atualizado com contagem real de vendas corrigida!")
 
 if __name__ == "__main__":
     gerar_banco_full()
