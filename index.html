@@ -98,10 +98,9 @@
                     </div>
 
                     <div class="filtros-grafico">
-                        <button id="btn-filtro-todos" class="btn-filtro ativo" onclick="atualizarPeriodoGrafico('todos')">Evolução (Linha do Tempo)</button>
-                        <button id="btn-filtro-30d" class="btn-filtro" onclick="atualizarPeriodoGrafico('30d')">Apenas 30 Dias</button>
-                        <button id="btn-filtro-14d" class="btn-filtro" onclick="atualizarPeriodoGrafico('14d')">Apenas 14 Dias</button>
-                        <button id="btn-filtro-7d" class="btn-filtro" onclick="atualizarPeriodoGrafico('7d')">Apenas 7 Dias</button>
+                        <button id="btn-filtro-30d" class="btn-filtro ativo" onclick="atualizarPeriodoGrafico('30d')">Últimos 30 Dias</button>
+                        <button id="btn-filtro-14d" class="btn-filtro" onclick="atualizarPeriodoGrafico('14d')">Últimos 14 Dias</button>
+                        <button id="btn-filtro-7d" class="btn-filtro" onclick="atualizarPeriodoGrafico('7d')">Últimos 7 Dias</button>
                     </div>
 
                     <div class="grafico-container" style="position: relative; height: 300px; margin-top: 15px;">
@@ -167,62 +166,49 @@
             produtoAtual = null;
         }
 
-        function renderizarGrafico(produto, periodo = 'todos') {
+        function renderizarGrafico(produto, periodo = '30d') {
             const ctx = document.getElementById('graficoCronologico').getContext('2d');
             if (meuGrafico) { meuGrafico.destroy(); }
 
-            const vendas = produto.vendas || { '7d': 0, '14d': 0, '30d': 0 };
-            const visitas = produto.visitas || { '7d': 0, '14d': 0, '30d': 0 };
-
-            let labels = [];
-            let dataVendas = [];
-            let dataVisitas = [];
-
-            if (periodo === 'todos') {
-                labels = ['Acumulado 30 Dias', 'Acumulado 14 Dias', 'Acumulado 7 Dias'];
-                dataVendas = [vendas['30d'], vendas['14d'], vendas['7d']];
-                dataVisitas = [visitas['30d'], visitas['14d'], visitas['7d']];
-            } else if (periodo === '30d') {
-                labels = ['Últimos 30 Dias'];
-                dataVendas = [vendas['30d']];
-                dataVisitas = [visitas['30d']];
-            } else if (periodo === '14d') {
-                labels = ['Últimos 14 Dias'];
-                dataVendas = [vendas['14d']];
-                dataVisitas = [visitas['14d']];
-            } else if (periodo === '7d') {
-                labels = ['Últimos 7 Dias'];
-                dataVendas = [vendas['7d']];
-                dataVisitas = [visitas['7d']];
+            let numDias = 30;
+            if (periodo === '14d') numDias = 14;
+            if (periodo === '7d') numDias = 7;
+            
+            let datasISO = [];
+            let labelsDiaMes = [];
+            let hoje = new Date();
+            
+            // Gera os dias de trás pra frente
+            for (let i = numDias - 1; i >= 0; i--) {
+                let d = new Date();
+                d.setDate(hoje.getDate() - i);
+                let ano = d.getFullYear();
+                let mes = String(d.getMonth() + 1).padStart(2, '0');
+                let dia = String(d.getDate()).padStart(2, '0');
+                
+                datasISO.push(`${ano}-${mes}-${dia}`);
+                labelsDiaMes.push(`${dia}/${mes}`);
             }
 
-            // O gráfico será sempre do tipo linha ('line') para manter a consistência visual.
+            const vendasDiarias = produto.vendas_diarias || {};
+            // Mapeia os dados do dict do python para as datas geradas, assumindo 0 caso nao tenha venda no dia
+            const dataVendasDiarias = datasISO.map(data => vendasDiarias[data] || 0);
+
             meuGrafico = new Chart(ctx, {
                 type: 'line',
                 data: {
-                    labels: labels,
+                    labels: labelsDiaMes,
                     datasets: [
                         {
-                            label: 'Vendas (Qtd)',
-                            data: dataVendas,
+                            label: 'Vendas (Qtd Diária)',
+                            data: dataVendasDiarias,
                             borderColor: '#28a745',
                             backgroundColor: 'rgba(40, 167, 69, 0.2)',
                             fill: true,
                             tension: 0.3,
-                            borderWidth: 3,
-                            pointRadius: 6,
-                            pointHoverRadius: 8
-                        },
-                        {
-                            label: 'Visitas',
-                            data: dataVisitas,
-                            borderColor: '#3483fa',
-                            backgroundColor: 'rgba(52, 131, 250, 0.2)',
-                            fill: true,
-                            tension: 0.3,
-                            borderWidth: 3,
-                            pointRadius: 6,
-                            pointHoverRadius: 8
+                            borderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 6
                         }
                     ]
                 },
@@ -232,7 +218,8 @@
                     scales: {
                         y: { 
                             beginAtZero: true,
-                            title: { display: true, text: 'Volume' }
+                            ticks: { precision: 0 },
+                            title: { display: true, text: 'Qtd Vendas' }
                         }
                     },
                     plugins: {
@@ -289,7 +276,7 @@
             document.getElementById('rec-30').innerText = rec['30d'];
             document.getElementById('dev-30').innerText = dev['30d'];
 
-            atualizarPeriodoGrafico('todos');
+            atualizarPeriodoGrafico('30d');
         }
 
         function buscarMlb() {

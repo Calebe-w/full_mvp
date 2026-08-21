@@ -76,7 +76,8 @@ def processar_item(item_id, token, vendas_por_item):
         vendas_item = vendas_por_item.get(str(item_id), {
             "7d": 0, "14d": 0, "30d": 0,
             "dev_7d": 0, "dev_14d": 0, "dev_30d": 0,
-            "fat_7d": 0.0, "fat_14d": 0.0, "fat_30d": 0.0
+            "fat_7d": 0.0, "fat_14d": 0.0, "fat_30d": 0.0,
+            "vendas_diarias": {}
         })
 
         info_produto = {
@@ -87,6 +88,7 @@ def processar_item(item_id, token, vendas_por_item):
             "experiencia_compra_texto": experiencia_texto,
             "pecas_no_full": estoque_full,
             "vendas": {"7d": vendas_item["7d"], "14d": vendas_item["14d"], "30d": vendas_item["30d"]},
+            "vendas_diarias": vendas_item["vendas_diarias"],
             "faturamento": {
                 "7d": round(vendas_item["fat_7d"], 2), 
                 "14d": round(vendas_item["fat_14d"], 2), 
@@ -115,7 +117,7 @@ def processar_item(item_id, token, vendas_por_item):
         return None
 
 def gerar_banco_full():
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] Iniciando extração com Faturamento Real e Gráficos...")
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] Extraindo pedidos com mapeamento de vendas diárias...")
     
     try:
         with open("tokens_das_contas.json", "r") as f: 
@@ -173,6 +175,8 @@ def gerar_banco_full():
                     data_pedido = datetime.min.replace(tzinfo=timezone.utc)
 
                 if data_pedido >= limite_30d:
+                    dia_formatado = data_pedido.strftime("%Y-%m-%d")
+                    
                     for item_info in pedido.get("order_items", []):
                         item_id = str(item_info.get("item", {}).get("id", ""))
                         qtd = int(item_info.get("quantity", 1))
@@ -184,12 +188,20 @@ def gerar_banco_full():
                             vendas_por_item[item_id] = {
                                 "7d": 0, "14d": 0, "30d": 0,
                                 "dev_7d": 0, "dev_14d": 0, "dev_30d": 0,
-                                "fat_7d": 0.0, "fat_14d": 0.0, "fat_30d": 0.0
+                                "fat_7d": 0.0, "fat_14d": 0.0, "fat_30d": 0.0,
+                                "vendas_diarias": {}
                             }
                         
                         if not is_cancelled:
+                            # Adicionando na contagem acumulada
                             vendas_por_item[item_id]["30d"] += qtd
                             vendas_por_item[item_id]["fat_30d"] += (qtd * unit_price)
+                            
+                            # Adicionando na contagem diária (Para o gráfico)
+                            if dia_formatado not in vendas_por_item[item_id]["vendas_diarias"]:
+                                vendas_por_item[item_id]["vendas_diarias"][dia_formatado] = 0
+                            vendas_por_item[item_id]["vendas_diarias"][dia_formatado] += qtd
+                            
                             if data_pedido >= limite_14d: 
                                 vendas_por_item[item_id]["14d"] += qtd
                                 vendas_por_item[item_id]["fat_14d"] += (qtd * unit_price)
@@ -205,7 +217,7 @@ def gerar_banco_full():
             if len(results) < 50: break
             offset_pedidos += 50
             
-        print(f"[{nome_loja}] Produtos com movimentação mapeada: {len(vendas_por_item)}")
+        print(f"[{nome_loja}] Produtos com vendas diárias mapeadas: {len(vendas_por_item)}")
 
         item_ids = []
         offset_items = 0
