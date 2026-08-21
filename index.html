@@ -110,7 +110,7 @@
             </div>
 
             <div class="card" style="margin-top: 20px;">
-                <h3>📦 Top 20 Sugestões para Enviar ao FULL (Ordem de Vendas)</h3>
+                <h3>🏆 Top 20 Anúncios Mais Vendidos (Geral / Reposição)</h3>
                 <p style="font-size: 13px; color: #666;">Clique em qualquer linha da tabela para carregar as métricas detalhadas.</p>
                 <div style="max-height: 400px; overflow-y: auto;">
                     <table style="width: 100%; border-collapse: collapse;">
@@ -191,7 +191,6 @@
             }
 
             const vendasDiarias = produto.vendas_diarias || {};
-            // Mapeia os dados do dict do python para as datas geradas, assumindo 0 caso nao tenha venda no dia
             const dataVendasDiarias = datasISO.map(data => vendasDiarias[data] || 0);
 
             meuGrafico = new Chart(ctx, {

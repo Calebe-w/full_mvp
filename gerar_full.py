@@ -99,25 +99,25 @@ def processar_item(item_id, token, vendas_por_item):
             "devolucoes": {"7d": vendas_item["dev_7d"], "14d": vendas_item["dev_14d"], "30d": vendas_item["dev_30d"]}
         }
         
-        sugestao_obj = None
-        if experiencia_texto != "FULL":
-            score = (vendas_item["30d"] * 3) + visitas_30d
-            sugestao_obj = {
-                "mlb": item_id, 
-                "titulo": titulo, 
-                "thumbnail": thumbnail, 
-                "vendas_30d": vendas_item["30d"], 
-                "faturamento_30d": round(vendas_item["fat_30d"], 2),
-                "visitas_30d": visitas_30d, 
-                "score": score
-            }
+        # REMOVIDA A TRAVA 'if experiencia_texto != "FULL":' 
+        # Agora todos os anúncios ativos entram no ranking!
+        score = (vendas_item["30d"] * 3) + visitas_30d
+        sugestao_obj = {
+            "mlb": item_id, 
+            "titulo": titulo, 
+            "thumbnail": thumbnail, 
+            "vendas_30d": vendas_item["30d"], 
+            "faturamento_30d": round(vendas_item["fat_30d"], 2),
+            "visitas_30d": visitas_30d, 
+            "score": score
+        }
 
         return {"item_id": item_id, "info": info_produto, "sugestao": sugestao_obj}
     except Exception as e: 
         return None
 
 def gerar_banco_full():
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] Extraindo pedidos com mapeamento de vendas diárias...")
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] Extraindo pedidos e gerando Ranking Geral (FULL + Padrão)...")
     
     try:
         with open("tokens_das_contas.json", "r") as f: 
@@ -193,11 +193,9 @@ def gerar_banco_full():
                             }
                         
                         if not is_cancelled:
-                            # Adicionando na contagem acumulada
                             vendas_por_item[item_id]["30d"] += qtd
                             vendas_por_item[item_id]["fat_30d"] += (qtd * unit_price)
                             
-                            # Adicionando na contagem diária (Para o gráfico)
                             if dia_formatado not in vendas_por_item[item_id]["vendas_diarias"]:
                                 vendas_por_item[item_id]["vendas_diarias"][dia_formatado] = 0
                             vendas_por_item[item_id]["vendas_diarias"][dia_formatado] += qtd
